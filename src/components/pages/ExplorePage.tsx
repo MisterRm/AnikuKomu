@@ -46,7 +46,7 @@ export default function ExplorePage({
         // Fetch posts
         let queryBuilder = supabase
           .from('posts')
-          .select('*, profiles:profiles(*)')
+          .select('*, profiles:profiles!user_id(*)')
           .order('created_at', { ascending: false });
 
         const { data: rawPosts, error } = await queryBuilder.limit(30);

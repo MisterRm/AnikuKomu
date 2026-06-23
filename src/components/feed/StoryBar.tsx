@@ -33,7 +33,7 @@ export default function StoryBar({
       const nowIso = new Date().toISOString();
       const { data, error } = await supabase
         .from('stories')
-        .select('*, profiles:profiles(*)')
+        .select('*, profiles:profiles!user_id(*)')
         .gt('expires_at', nowIso)
         .order('created_at', { ascending: true });
 
@@ -113,7 +113,7 @@ export default function StoryBar({
           image_public_id: uploadData.public_id,
           expires_at: expiresAt,
         })
-        .select('*, profiles:profiles(*)')
+        .select('*, profiles:profiles!user_id(*)')
         .single();
 
       if (dbError) throw dbError;

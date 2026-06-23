@@ -46,7 +46,7 @@ export default function FeedPage({
 
       let queryBuilder = supabase
         .from('posts')
-        .select('*, profiles:profiles(*)')
+        .select('*, profiles:profiles!user_id(*)')
         .order('created_at', { ascending: false });
 
       // If user wants 'following' mode and has followings, limit query to those

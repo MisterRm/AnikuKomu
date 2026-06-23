@@ -36,7 +36,7 @@ export default function CommentSheet({
         setLoading(true);
         const { data, error } = await supabase
           .from('comments')
-          .select('*, profiles:profiles(*)')
+          .select('*, profiles:profiles!user_id(*)')
           .eq('post_id', postId)
           .order('created_at', { ascending: true });
 

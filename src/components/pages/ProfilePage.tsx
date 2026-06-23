@@ -69,7 +69,7 @@ export default function ProfilePage({
         if (activeTab === 'posts') {
           const { data, error: postsErr } = await supabase
             .from('posts')
-            .select('*, profiles:profiles(*)')
+            .select('*, profiles:profiles!user_id(*)')
             .eq('user_id', activeProf.id)
             .order('created_at', { ascending: false });
 
@@ -83,7 +83,7 @@ export default function ProfilePage({
           // fetch liked posts
           const { data: likedRecords, error } = await supabase
             .from('likes')
-            .select('post_id, posts(*, profiles:profiles(*))')
+            .select('post_id, posts(*, profiles:profiles!user_id(*))')
             .eq('user_id', activeProf.id);
 
           if (likedRecords) {
@@ -127,7 +127,7 @@ export default function ProfilePage({
       setLoadingModalData(true);
       const { data } = await supabase
         .from('follows')
-        .select('follower_id, profiles:profiles(*)') // query profiles of the follower
+        .select('follower_id, profiles:profiles!follower_id(*)') // query profiles of the follower
         .eq('following_id', profile.id);
 
       if (data) {
@@ -148,7 +148,7 @@ export default function ProfilePage({
       setLoadingModalData(true);
       const { data } = await supabase
         .from('follows')
-        .select('following_id, profiles:profiles(*)') // query profiles being followed
+        .select('following_id, profiles:profiles!following_id(*)') // query profiles being followed
         .eq('follower_id', profile.id);
 
       if (data) {
