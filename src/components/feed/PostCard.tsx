@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { supabase } from '../../lib/supabase/client';
 import { Post, Anime } from '../../types/database';
 import { Avatar } from '../ui/Avatar';
 import LikeButton from '../post/LikeButton';
@@ -41,7 +42,7 @@ export default function PostCard({
 
   const handleDeletePost = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!token || isDeleting) return;
+    if (isDeleting) return;
 
     if (!window.confirm('Apakah Anda yakin ingin menghapus postingan anime ini?')) {
       return;
@@ -49,22 +50,29 @@ export default function PostCard({
 
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/post/${post.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      // Delete directly via Supabase (RLS policy "posts_delete" only allows the
+      // owner to do this). Related likes/comments/post_anime_tags rows are
+      // removed automatically by the ON DELETE CASCADE foreign keys in the DB.
+      const { error: deleteError } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', post.id)
+        .eq('user_id', currentUser.id);
 
-      if (!res.ok) {
-        let message = `Gagal menghapus postingan (status ${res.status}).`;
-        try {
-          const data = await res.json();
-          if (data?.error) message = data.error;
-        } catch {
-          // Response body wasn't JSON (e.g. server crashed before responding) — keep fallback message.
-        }
-        throw new Error(message);
+      if (deleteError) throw deleteError;
+
+      // Best-effort Cloudinary cleanup in the background — uses POST instead
+      // of DELETE since some mobile networks/proxies mishandle DELETE requests.
+      // Failure here doesn't matter to the user; the post is already gone.
+      if (post.image_public_id && token) {
+        fetch('/api/post/cleanup-image', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ public_id: post.image_public_id })
+        }).catch(() => {});
       }
 
       onToast('Postingan Anda berhasil dihapus!', 'success');
