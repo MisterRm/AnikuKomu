@@ -10,6 +10,7 @@ interface FeedPageProps {
   currentUser: any;
   currentProfile: Profile | null;
   token: string | null;
+  refreshSignal?: number;
   onOpenStoryViewer: (stories: Story[], startIndex: number) => void;
   onOpenComments: (postId: string) => void;
   onToast: (text: string, type: 'success' | 'error' | 'info') => void;
@@ -21,6 +22,7 @@ export default function FeedPage({
   currentUser,
   currentProfile,
   token,
+  refreshSignal,
   onOpenStoryViewer,
   onOpenComments,
   onToast,
@@ -28,6 +30,7 @@ export default function FeedPage({
   onSelectTag
 }: FeedPageProps) {
   const [posts, setPosts] = useState<Post[]>([]);
+  const [likedPostIds, setLikedPostIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [feedMode, setFeedMode] = useState<'following' | 'explore'>('explore');
 
@@ -76,6 +79,20 @@ export default function FeedPage({
           })
         );
         setPosts(hydratedPosts);
+
+        // Find out which of these posts the current user has already liked
+        if (hydratedPosts.length > 0) {
+          const postIds = hydratedPosts.map((p) => p.id);
+          const { data: likedRows } = await supabase
+            .from('likes')
+            .select('post_id')
+            .eq('user_id', currentUser.id)
+            .in('post_id', postIds);
+
+          setLikedPostIds(new Set((likedRows || []).map((r) => r.post_id)));
+        } else {
+          setLikedPostIds(new Set());
+        }
       }
     } catch (err: any) {
       console.error('Failed to load feed:', err);
@@ -87,7 +104,7 @@ export default function FeedPage({
 
   useEffect(() => {
     fetchFeed();
-  }, [currentUser, feedMode]);
+  }, [currentUser, feedMode, refreshSignal]);
 
   const handlePostDeleted = (postId: string) => {
     startTransition(() => {
@@ -171,6 +188,7 @@ export default function FeedPage({
               post={post}
               currentUser={currentUser}
               token={token}
+              initialLiked={likedPostIds.has(post.id)}
               onOpenComments={onOpenComments}
               onPostDeleted={handlePostDeleted}
               onToast={onToast}

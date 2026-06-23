@@ -1,4 +1,4 @@
-import { useState, useEffect, TransitionEvent, useTransition, useMemo, startTransition } from 'react';
+import { useState, useEffect, useRef, TransitionEvent, useTransition, useMemo, startTransition } from 'react';
 import { supabase } from './lib/supabase/client';
 import { Profile, Story } from './types/database';
 import { useAuth } from './hooks/useAuth';
@@ -37,6 +37,8 @@ export default function App() {
   const [activeStoryDeck, setActiveStoryDeck] = useState<Story[] | null>(null);
   const [storyStartIndex, setStoryStartIndex] = useState<number>(0);
   const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(null);
+  const [feedRefreshKey, setFeedRefreshKey] = useState(0);
+  const commentsChangedRef = useRef(false);
 
   const [, startRouteTransition] = useTransition();
 
@@ -149,6 +151,7 @@ export default function App() {
           currentUser={user}
           currentProfile={profile}
           token={token}
+          refreshSignal={feedRefreshKey}
           onOpenStoryViewer={(deck, idx) => {
             setActiveStoryDeck(deck);
             setStoryStartIndex(idx);
@@ -166,6 +169,7 @@ export default function App() {
         <ExplorePage
           currentUser={user}
           token={token}
+          refreshSignal={feedRefreshKey}
           onOpenComments={setActiveCommentPostId}
           onToast={showToast}
           onNavigateToUser={(u) => handleNavigate(`profile/${u}`)}
@@ -206,6 +210,7 @@ export default function App() {
           currentUser={user}
           currentProfile={profile}
           token={token}
+          refreshSignal={feedRefreshKey}
           onNavigateToEdit={() => handleNavigate('profile/edit')}
           onOpenComments={setActiveCommentPostId}
           onToast={showToast}
@@ -322,9 +327,15 @@ export default function App() {
             currentUser={user}
             onToast={showToast}
             onCommentsCountChange={(newTotal) => {
-              // Direct state sync matching active indices
+              commentsChangedRef.current = true;
             }}
-            onClose={() => setActiveCommentPostId(null)}
+            onClose={() => {
+              setActiveCommentPostId(null);
+              if (commentsChangedRef.current) {
+                commentsChangedRef.current = false;
+                setFeedRefreshKey((k) => k + 1);
+              }
+            }}
           />
         )}
       </AnimatePresence>

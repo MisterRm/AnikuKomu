@@ -8,6 +8,7 @@ import { Search, Compass, Sparkles, UserPlus, SlidersHorizontal, BookOpen } from
 interface ExplorePageProps {
   currentUser: any;
   token: string | null;
+  refreshSignal?: number;
   onOpenComments: (postId: string) => void;
   onToast: (text: string, type: 'success' | 'error' | 'info') => void;
   onNavigateToUser: (username: string) => void;
@@ -16,6 +17,7 @@ interface ExplorePageProps {
 export default function ExplorePage({
   currentUser,
   token,
+  refreshSignal,
   onOpenComments,
   onToast,
   onNavigateToUser
@@ -89,7 +91,7 @@ export default function ExplorePage({
     }
 
     loadExplorePosts();
-  }, [selectedGenre]);
+  }, [selectedGenre, refreshSignal]);
 
   // Handle Search users
   useEffect(() => {

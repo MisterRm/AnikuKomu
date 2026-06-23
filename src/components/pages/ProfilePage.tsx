@@ -14,6 +14,7 @@ interface ProfilePageProps {
   currentUser: any;
   currentProfile: Profile | null;
   token: string | null;
+  refreshSignal?: number;
   onNavigateToEdit: () => void;
   onOpenComments: (postId: string) => void;
   onToast: (text: string, type: 'success' | 'error' | 'info') => void;
@@ -25,6 +26,7 @@ export default function ProfilePage({
   currentUser,
   currentProfile,
   token,
+  refreshSignal,
   onNavigateToEdit,
   onOpenComments,
   onToast,
@@ -117,7 +119,7 @@ export default function ProfilePage({
     }
 
     loadProfile();
-  }, [usernameParam, activeTab]);
+  }, [usernameParam, activeTab, refreshSignal]);
 
   // Load modal lists
   const handleOpenFollowers = async () => {

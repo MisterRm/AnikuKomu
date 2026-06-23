@@ -12,6 +12,7 @@ interface PostCardProps {
   post: Post;
   currentUser: any;
   token: string | null;
+  initialLiked?: boolean;
   onOpenComments: (postId: string) => void;
   onPostDeleted?: (postId: string) => void;
   onToast: (text: string, type: 'success' | 'error' | 'info') => void;
@@ -23,6 +24,7 @@ export default function PostCard({
   post,
   currentUser,
   token,
+  initialLiked = false,
   onOpenComments,
   onPostDeleted,
   onToast,
@@ -248,7 +250,7 @@ export default function PostCard({
       <div className="flex items-center gap-5 pt-0.5 select-none">
         <LikeButton
           postId={post.id}
-          initialLiked={false} // Like counts updated on mount or synced from Parent if needed
+          initialLiked={initialLiked}
           initialCount={post.likes_count || 0}
           token={token}
           onToast={onToast}
