@@ -6,11 +6,93 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+async function fetchFromJikan(q: string) {
+  const res = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(q)}&limit=10&sfw=true`);
+  if (!res.ok) return [];
+  const json = await res.json();
+  return (json.data || []).map((a: any) => ({
+    mal_id: a.mal_id,
+    title: a.title,
+    cover_url: a.images?.jpg?.large_image_url || a.images?.jpg?.image_url || null,
+    genre: (a.genres || []).map((g: any) => g.name),
+    score: a.score,
+    episodes: a.episodes,
+    synopsis: a.synopsis,
+    status: a.status,
+    year: a.year,
+  }));
+}
+
+async function upsertAnimes(animes: any[]) {
+  for (const a of animes) {
+    if (!a.mal_id) continue;
+    await supabase.from('animes').upsert({
+      mal_id: a.mal_id,
+      title: a.title,
+      cover_url: a.cover_url,
+      genre: a.genre,
+    }, { onConflict: 'mal_id', ignoreDuplicates: false });
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const q = req.query.q as string || '';
-  let query = supabase.from('animes').select('*').limit(15);
-  if (q.length >= 2) query = query.ilike('title', `%${q}%`);
-  const { data, error } = await query;
-  if (error) return res.status(500).json({ error: error.message });
-  return res.json(data || []);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  const q = (req.query.q as string) || '';
+
+  // Kalau query kosong, return top anime dari Jikan
+  if (q.length < 2) {
+    try {
+      const topRes = await fetch('https://api.jikan.moe/v4/top/anime?limit=10&filter=airing');
+      const topJson = await topRes.json();
+      const results = (topJson.data || []).map((a: any) => ({
+        mal_id: a.mal_id,
+        title: a.title,
+        cover_url: a.images?.jpg?.large_image_url || null,
+        genre: (a.genres || []).map((g: any) => g.name),
+        score: a.score,
+        episodes: a.episodes,
+        synopsis: a.synopsis,
+        status: a.status,
+        year: a.year,
+      }));
+      return res.json(results);
+    } catch {
+      return res.json([]);
+    }
+  }
+
+  try {
+    // Cek dulu di Supabase
+    const { data: existing } = await supabase
+      .from('animes')
+      .select('*')
+      .ilike('title', `%${q}%`)
+      .limit(10);
+
+    // Fetch dari Jikan
+    const jikanResults = await fetchFromJikan(q);
+
+    // Upsert hasil Jikan ke Supabase (background, tidak blocking)
+    upsertAnimes(jikanResults).catch(() => {});
+
+    // Ambil data Supabase yang sudah terupdate (dengan id asli)
+    const { data: freshData } = await supabase
+      .from('animes')
+      .select('*')
+      .ilike('title', `%${q}%`)
+      .limit(10);
+
+    // Merge: prioritas data Supabase (punya id), tambah jikan yang belum ada
+    const supabaseIds = new Set((freshData || []).map((a: any) => a.mal_id));
+    const extraFromJikan = jikanResults.filter((j: any) => !supabaseIds.has(j.mal_id));
+
+    const merged = [
+      ...(freshData || []),
+      ...extraFromJikan.map((j: any) => ({ ...j, id: null }))
+    ];
+
+    return res.json(merged);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
 }
