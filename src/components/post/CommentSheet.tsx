@@ -131,16 +131,20 @@ export default function CommentSheet({
 
     try {
       if (nextLiked) {
-        await supabase.from('comment_likes').insert({ user_id: currentUser.id, comment_id: commentId });
+        const { error } = await supabase
+          .from('comment_likes')
+          .insert({ user_id: currentUser.id, comment_id: commentId });
+        if (error) throw error;
       } else {
-        await supabase.from('comment_likes').delete().eq('user_id', currentUser.id).eq('comment_id', commentId);
+        const { error } = await supabase
+          .from('comment_likes')
+          .delete()
+          .eq('user_id', currentUser.id)
+          .eq('comment_id', commentId);
+        if (error) throw error;
       }
-      // Sync in DB counts
-      const { error } = await supabase
-        .from('comments')
-        .update({ likes_count: nextCount })
-        .eq('id', commentId);
-      if (error) throw error;
+      // comments.likes_count is kept in sync automatically by a DB trigger
+      // (trg_comment_likes_count) — no manual update needed here.
     } catch (err: any) {
       // rollback on error
       setCommentLikes((prev) => ({
