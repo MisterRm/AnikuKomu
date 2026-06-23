@@ -57,8 +57,14 @@ export default function PostCard({
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Gagal menghapus postingan.');
+        let message = `Gagal menghapus postingan (status ${res.status}).`;
+        try {
+          const data = await res.json();
+          if (data?.error) message = data.error;
+        } catch {
+          // Response body wasn't JSON (e.g. server crashed before responding) — keep fallback message.
+        }
+        throw new Error(message);
       }
 
       onToast('Postingan Anda berhasil dihapus!', 'success');
