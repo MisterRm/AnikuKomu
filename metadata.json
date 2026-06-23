@@ -1,0 +1,6 @@
+{
+  "name": "AnikuKomu",
+  "description": "Platform sosial media bertema anime untuk komunitas Indonesia, lengkap dengan feed, story, create post, anime tag, dan explore.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
