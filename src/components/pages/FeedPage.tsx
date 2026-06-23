@@ -77,8 +77,9 @@ export default function FeedPage({
         );
         setPosts(hydratedPosts);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load feed:', err);
+      onToast(err?.message || 'Gagal memuat feed.', 'error');
     } finally {
       setLoading(false);
     }

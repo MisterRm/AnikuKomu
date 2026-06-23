@@ -67,11 +67,16 @@ export default function ProfilePage({
         // Fetch posts or liked posts based on active tab
         let postData: Post[] = [];
         if (activeTab === 'posts') {
-          const { data } = await supabase
+          const { data, error: postsErr } = await supabase
             .from('posts')
             .select('*, profiles:profiles(*)')
             .eq('user_id', activeProf.id)
             .order('created_at', { ascending: false });
+
+          if (postsErr) {
+            console.error('Error loading posts:', postsErr.message);
+            onToast(postsErr.message, 'error');
+          }
 
           postData = (data as Post[]) || [];
         } else {
@@ -103,8 +108,9 @@ export default function ProfilePage({
         );
 
         setPosts(hydrated);
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error loading profile:', err);
+        onToast(err?.message || 'Gagal memuat profil.', 'error');
       } finally {
         setLoading(false);
       }
