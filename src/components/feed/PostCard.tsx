@@ -148,12 +148,12 @@ export default function PostCard({
         </div>
       </div>
 
-      {/* Main post photo media display card */}
-      <div 
-        onClick={() => onOpenComments(post.id)}
-        className="w-full aspect-[4/5] rounded-2xl bg-[#111113] border border-[#27272a] overflow-hidden relative cursor-pointer group shadow-xl"
-      >
-        {post.image_url ? (
+      {/* Main post photo media display card (only when an image exists) */}
+      {post.image_url && (
+        <div
+          onClick={() => onOpenComments(post.id)}
+          className="w-full aspect-[4/5] rounded-2xl bg-[#111113] border border-[#27272a] overflow-hidden relative cursor-pointer group shadow-xl"
+        >
           <img
             src={post.image_url}
             alt={post.caption || 'AnikuKomu Post'}
@@ -161,41 +161,35 @@ export default function PostCard({
             referrerPolicy="no-referrer"
             className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out"
           />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center p-6 bg-gradient-to-br from-purple-500/10 via-zinc-900 to-pink-500/10">
-            <p className="text-sm text-zinc-300 text-center leading-relaxed line-clamp-[10]">
-              {post.caption}
-            </p>
+
+          {/* Sleek bottom dark gradient overlay with tag badges */}
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent p-4 flex flex-col justify-end gap-1.5 transition-opacity z-10">
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 select-none items-center">
+                {tags.map((tag) => (
+                  <span
+                    key={tag.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectTag && onSelectTag(tag.title);
+                    }}
+                    className="bg-purple-900/40 border border-purple-500/50 text-purple-200 text-[9px] tracking-wider uppercase font-extrabold px-2.5 py-1 rounded-full cursor-pointer hover:bg-purple-800/60 active:scale-95 transition-all text-shadow"
+                  >
+                    #{tag.title}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
-        )}
 
-        {/* Sleek bottom dark gradient overlay with tag badges */}
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent p-4 flex flex-col justify-end gap-1.5 transition-opacity z-10">
-          {tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 select-none items-center">
-              {tags.map((tag) => (
-                <span
-                  key={tag.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelectTag && onSelectTag(tag.title);
-                  }}
-                  className="bg-purple-900/40 border border-purple-500/50 text-purple-200 text-[9px] tracking-wider uppercase font-extrabold px-2.5 py-1 rounded-full cursor-pointer hover:bg-purple-800/60 active:scale-95 transition-all text-shadow"
-                >
-                  #{tag.title}
-                </span>
-              ))}
-            </div>
-          )}
+          {/* Hover overlay hint */}
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-20">
+            <span className="bg-zinc-950/90 backdrop-blur-md text-[10px] uppercase tracking-widest font-extrabold text-zinc-100 px-4 py-2 rounded-full border border-[#27272a] shadow-lg">
+              Klik Untuk Diskusi
+            </span>
+          </div>
         </div>
-
-        {/* Hover overlay hint */}
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-20">
-          <span className="bg-zinc-950/90 backdrop-blur-md text-[10px] uppercase tracking-widest font-extrabold text-zinc-100 px-4 py-2 rounded-full border border-[#27272a] shadow-lg">
-            Klik Untuk Diskusi
-          </span>
-        </div>
-      </div>
+      )}
 
       {/* Responsive action hub buttons bar */}
       <div className="flex items-center gap-5 pt-0.5 select-none">
