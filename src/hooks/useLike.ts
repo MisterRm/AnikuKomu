@@ -1,48 +1,56 @@
 import { useState } from 'react';
+import { supabase } from '../lib/supabase/client';
 
 export function useLike(postId: string, initialLiked: boolean, initialCount: number) {
   const [liked, setLiked] = useState(initialLiked);
   const [count, setCount] = useState(initialCount);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const toggleLike = async (token: string) => {
+  // token param kept for backwards-compat with existing call sites, but the
+  // actual auth comes from the Supabase client's own session (RLS-enforced).
+  const toggleLike = async (_token: string) => {
     if (isProcessing) return;
     setIsProcessing(true);
 
     const prevLiked = liked;
     const prevCount = count;
 
-    // Optimistic UI Update
+    // Optimistic UI update
     const nextLiked = !prevLiked;
     const nextCount = nextLiked ? prevCount + 1 : Math.max(0, prevCount - 1);
-
     setLiked(nextLiked);
     setCount(nextCount);
 
     try {
-      const res = await fetch('/api/like', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ post_id: postId }),
-      });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Anda harus login untuk menyukai postingan.');
 
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to toggle like');
+      if (prevLiked) {
+        const { error } = await supabase
+          .from('likes')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('post_id', postId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('likes')
+          .insert({ user_id: user.id, post_id: postId });
+        if (error) throw error;
       }
 
-      const data = await res.json();
-      // Sync strictly with server numbers
-      setLiked(data.liked);
-      setCount(data.count);
+      // Sync with real count from the server (likes_count is kept in sync by a DB trigger)
+      const { count: realCount } = await supabase
+        .from('likes')
+        .select('*', { count: 'exact', head: true })
+        .eq('post_id', postId);
+
+      setCount(realCount ?? nextCount);
     } catch (err) {
-      console.error('Optimistic like toggle failed, rolling back:', err);
-      // Rollback to previous clean state
+      console.error('Like toggle failed, rolling back:', err);
       setLiked(prevLiked);
       setCount(prevCount);
+      throw err;
     } finally {
       setIsProcessing(false);
     }

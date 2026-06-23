@@ -251,6 +251,7 @@ export default function PostCard({
           initialLiked={false} // Like counts updated on mount or synced from Parent if needed
           initialCount={post.likes_count || 0}
           token={token}
+          onToast={onToast}
           onLikedStateChange={(nextMatchedLiked) => {
             // Callback to raise notification if useful
           }}

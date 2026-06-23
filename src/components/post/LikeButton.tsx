@@ -11,6 +11,7 @@ interface LikeButtonProps {
   token: string | null;
   className?: string;
   onLikedStateChange?: (liked: boolean) => void;
+  onToast?: (text: string, type: 'success' | 'error' | 'info') => void;
 }
 
 export default function LikeButton({
@@ -19,7 +20,8 @@ export default function LikeButton({
   initialCount,
   token,
   className,
-  onLikedStateChange
+  onLikedStateChange,
+  onToast
 }: LikeButtonProps) {
   const { liked, count, toggleLike, isProcessing } = useLike(postId, initialLiked, initialCount);
 
@@ -27,9 +29,13 @@ export default function LikeButton({
     e.stopPropagation();
     if (!token) return;
     const prevLiked = liked;
-    await toggleLike(token);
-    if (onLikedStateChange && prevLiked !== !liked) {
-      onLikedStateChange(!prevLiked);
+    try {
+      await toggleLike(token);
+      if (onLikedStateChange && prevLiked !== !liked) {
+        onLikedStateChange(!prevLiked);
+      }
+    } catch (err: any) {
+      onToast?.(err?.message || 'Gagal menyukai postingan.', 'error');
     }
   };
 

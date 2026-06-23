@@ -1,39 +1,41 @@
 import { useState } from 'react';
+import { supabase } from '../lib/supabase/client';
 
 export function useFollow(targetUserId: string, initialFollowing: boolean) {
   const [following, setFollowing] = useState(initialFollowing);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const toggleFollow = async (token: string) => {
+  // token param kept for backwards-compat with existing call sites, but the
+  // actual auth comes from the Supabase client's own session (RLS-enforced).
+  const toggleFollow = async (_token: string) => {
     if (isProcessing) return;
     setIsProcessing(true);
 
     const prevFollowing = following;
-
-    // Optimistic state switch
     setFollowing(!prevFollowing);
 
     try {
-      const res = await fetch('/api/follow', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ target_user_id: targetUserId }),
-      });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Anda harus login untuk mengikuti pengguna.');
+      if (user.id === targetUserId) throw new Error('Tidak bisa mengikuti diri sendiri.');
 
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to toggle follow');
+      if (prevFollowing) {
+        const { error } = await supabase
+          .from('follows')
+          .delete()
+          .eq('follower_id', user.id)
+          .eq('following_id', targetUserId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('follows')
+          .insert({ follower_id: user.id, following_id: targetUserId });
+        if (error) throw error;
       }
-
-      const data = await res.json();
-      setFollowing(data.following);
     } catch (err) {
-      console.error('Optimistic follow toggle failed, rolling back:', err);
-      // Rollback to previous state
+      console.error('Follow toggle failed, rolling back:', err);
       setFollowing(prevFollowing);
+      throw err;
     } finally {
       setIsProcessing(false);
     }

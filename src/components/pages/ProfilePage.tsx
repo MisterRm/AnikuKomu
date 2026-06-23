@@ -185,15 +185,19 @@ export default function ProfilePage({
 
   const handleFollowToggle = async () => {
     if (!token || !profile) return;
-    await toggleFollow(token);
-    // sync visual stats count directly
-    setProfile(prev => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        followers_count: following ? prev.followers_count - 1 : prev.followers_count + 1
-      };
-    });
+    try {
+      await toggleFollow(token);
+      // sync visual stats count directly
+      setProfile(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          followers_count: following ? prev.followers_count - 1 : prev.followers_count + 1
+        };
+      });
+    } catch (err: any) {
+      onToast(err?.message || 'Gagal mengikuti pengguna.', 'error');
+    }
   };
 
   if (loading && !profile) {

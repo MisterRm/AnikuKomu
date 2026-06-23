@@ -12,6 +12,7 @@ interface CommentSheetProps {
   token: string | null;
   currentUser: any;
   onCommentsCountChange?: (newCount: number) => void;
+  onToast?: (text: string, type: 'success' | 'error' | 'info') => void;
   onClose: () => void;
 }
 
@@ -20,6 +21,7 @@ export default function CommentSheet({
   token,
   currentUser,
   onCommentsCountChange,
+  onToast,
   onClose
 }: CommentSheetProps) {
   const [comments, setComments] = useState<Comment[]>([]);
@@ -78,43 +80,26 @@ export default function CommentSheet({
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token || !newCommentText.trim() || isSubmitting) return;
+    if (!currentUser || !newCommentText.trim() || isSubmitting) return;
 
     setIsSubmitting(true);
     try {
-      const payload = {
-        post_id: postId,
-        content: newCommentText.trim(),
-        parent_id: replyTarget ? replyTarget.id : null,
-      };
+      const { data: freshComment, error } = await supabase
+        .from('comments')
+        .insert({
+          post_id: postId,
+          user_id: currentUser.id,
+          content: newCommentText.trim(),
+          parent_id: replyTarget ? replyTarget.id : null,
+          likes_count: 0
+        })
+        .select('*, profiles:profiles!user_id(*)')
+        .single();
 
-      const res = await fetch('/api/comment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) {
-        throw new Error('Gagal memposting komentar');
-      }
-
-      const freshComment = await res.json();
-      
-      // Inject profile locally to avoid refetching
-      if (currentUser && !freshComment.profiles) {
-        const { data: prof } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', currentUser.id)
-          .single();
-        freshComment.profiles = prof;
-      }
+      if (error) throw error;
 
       startTransition(() => {
-        setComments(prev => [...prev, freshComment]);
+        setComments(prev => [...prev, freshComment as Comment]);
         setNewCommentText('');
         setReplyTarget(null);
 
@@ -124,8 +109,9 @@ export default function CommentSheet({
           onCommentsCountChange(nextTotal);
         }
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error posting comment:', err);
+      onToast?.(err?.message || 'Gagal memposting komentar.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -155,12 +141,13 @@ export default function CommentSheet({
         .update({ likes_count: nextCount })
         .eq('id', commentId);
       if (error) throw error;
-    } catch (err) {
+    } catch (err: any) {
       // rollback on error
       setCommentLikes((prev) => ({
         ...prev,
         [commentId]: currentStatus
       }));
+      onToast?.(err?.message || 'Gagal menyukai komentar.', 'error');
     }
   };
 

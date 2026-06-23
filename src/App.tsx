@@ -320,6 +320,7 @@ export default function App() {
             postId={activeCommentPostId}
             token={token}
             currentUser={user}
+            onToast={showToast}
             onCommentsCountChange={(newTotal) => {
               // Direct state sync matching active indices
             }}
