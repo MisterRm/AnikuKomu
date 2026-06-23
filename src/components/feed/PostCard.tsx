@@ -191,35 +191,6 @@ export default function PostCard({
         </div>
       )}
 
-      {/* Responsive action hub buttons bar */}
-      <div className="flex items-center gap-5 pt-0.5 select-none">
-        <LikeButton
-          postId={post.id}
-          initialLiked={false} // Like counts updated on mount or synced from Parent if needed
-          initialCount={post.likes_count || 0}
-          token={token}
-          onLikedStateChange={(nextMatchedLiked) => {
-            // Callback to raise notification if useful
-          }}
-        />
-
-        <button
-          onClick={() => onOpenComments(post.id)}
-          className="flex items-center gap-2 py-2 px-3 rounded-full hover:bg-zinc-900 text-zinc-400 hover:text-purple-400 transition-colors cursor-pointer font-mono text-xs font-semibold"
-        >
-          <MessageCircle className="w-5 h-5 text-zinc-400 group-hover:text-purple-400 transition-colors" />
-          <span>{post.comments_count || 0}</span>
-        </button>
-
-        <button
-          onClick={handleCopyLink}
-          className="flex items-center gap-2 py-2 px-3 rounded-full hover:bg-zinc-900 text-zinc-400 hover:text-pink-400 transition-colors cursor-pointer font-mono text-xs font-semibold ml-auto"
-          title="Salin Tautan"
-        >
-          <Share2 className="w-4.5 h-4.5" />
-        </button>
-      </div>
-
       {/* expandible Caption & user-tags segment */}
       <div className="space-y-2">
         {post.caption && (
@@ -271,6 +242,35 @@ export default function PostCard({
             ))}
           </div>
         )}
+      </div>
+
+      {/* Responsive action hub buttons bar */}
+      <div className="flex items-center gap-5 pt-0.5 select-none">
+        <LikeButton
+          postId={post.id}
+          initialLiked={false} // Like counts updated on mount or synced from Parent if needed
+          initialCount={post.likes_count || 0}
+          token={token}
+          onLikedStateChange={(nextMatchedLiked) => {
+            // Callback to raise notification if useful
+          }}
+        />
+
+        <button
+          onClick={() => onOpenComments(post.id)}
+          className="flex items-center gap-2 py-2 px-3 rounded-full hover:bg-zinc-900 text-zinc-400 hover:text-purple-400 transition-colors cursor-pointer font-mono text-xs font-semibold"
+        >
+          <MessageCircle className="w-5 h-5 text-zinc-400 group-hover:text-purple-400 transition-colors" />
+          <span>{post.comments_count || 0}</span>
+        </button>
+
+        <button
+          onClick={handleCopyLink}
+          className="flex items-center gap-2 py-2 px-3 rounded-full hover:bg-zinc-900 text-zinc-400 hover:text-pink-400 transition-colors cursor-pointer font-mono text-xs font-semibold ml-auto"
+          title="Salin Tautan"
+        >
+          <Share2 className="w-4.5 h-4.5" />
+        </button>
       </div>
     </motion.article>
   );
