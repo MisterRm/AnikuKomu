@@ -109,6 +109,8 @@ export function useAuth() {
       subscription.unsubscribe();
     };
   }, [ensureProfile]);
+
+  const signOut = async () => {
     setLoading(true);
     await supabase.auth.signOut();
     setUser(null);
