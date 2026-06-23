@@ -22,7 +22,14 @@ async function authenticateUser(req: VercelRequest) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'DELETE') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Allow', 'DELETE, OPTIONS');
+    return res.status(204).end();
+  }
+
+  if (req.method !== 'DELETE') {
+    return res.status(405).json({ error: `Method not allowed (received: ${req.method})` });
+  }
   const user = await authenticateUser(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
