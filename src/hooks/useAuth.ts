@@ -26,6 +26,39 @@ export function useAuth() {
     }
   }, []);
 
+  // Fallback: if a user is authenticated but has no row in `profiles` yet
+  // (e.g. signup happened before email confirmation, so the original insert
+  // was blocked by RLS), create it now from the metadata we stashed at signup.
+  const ensureProfile = useCallback(async (authUser: any) => {
+    const existing = await fetchProfile(authUser.id);
+    if (existing) return existing;
+
+    const meta = authUser.user_metadata || {};
+    const fallbackUsername =
+      meta.username || (authUser.email ? authUser.email.split('@')[0] : `user${authUser.id.slice(0, 8)}`);
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .insert({
+        id: authUser.id,
+        username: fallbackUsername,
+        display_name: meta.display_name || fallbackUsername,
+        avatar_url: null,
+        bio: 'Penggemar Anime Nusantara 🇮🇩',
+        followers_count: 0,
+        following_count: 0,
+        posts_count: 0
+      })
+      .select('*')
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error auto-creating profile:', error.message);
+      return null;
+    }
+    return data as Profile;
+  }, [fetchProfile]);
+
   const refreshProfile = useCallback(async () => {
     if (!user) return;
     const p = await fetchProfile(user.id);
@@ -43,7 +76,7 @@ export function useAuth() {
         const { data: { session } } = await supabase.auth.getSession();
         if (session && session.user) {
           if (mounted) setUser(session.user);
-          const userProfile = await fetchProfile(session.user.id);
+          const userProfile = await ensureProfile(session.user);
           if (mounted && userProfile) setProfile(userProfile);
         }
       } catch (err) {
@@ -60,7 +93,7 @@ export function useAuth() {
       if (mounted) setLoading(true);
       if (session && session.user) {
         if (mounted) setUser(session.user);
-        const userProfile = await fetchProfile(session.user.id);
+        const userProfile = await ensureProfile(session.user);
         if (mounted && userProfile) setProfile(userProfile);
       } else {
         if (mounted) {
@@ -75,9 +108,7 @@ export function useAuth() {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [fetchProfile]);
-
-  const signOut = async () => {
+  }, [ensureProfile]);
     setLoading(true);
     await supabase.auth.signOut();
     setUser(null);

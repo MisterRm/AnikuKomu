@@ -71,8 +71,26 @@ export default function App() {
 
   // Client side hash navigation listener coordination fallback
   useEffect(() => {
+    const isSupabaseAuthHash = (hash: string) =>
+      hash.includes('access_token=') ||
+      hash.includes('refresh_token=') ||
+      hash.includes('type=signup') ||
+      hash.includes('type=recovery') ||
+      hash.includes('type=magiclink') ||
+      hash.includes('error=') ||
+      hash.includes('error_description=');
+
     const handleHashChange = () => {
       const hash = window.location.hash.slice(1);
+      if (hash && isSupabaseAuthHash(hash)) {
+        // Supabase already parsed/consumed this for the session.
+        // Clean the URL and send the user to the feed instead of 404.
+        window.history.replaceState(null, '', window.location.pathname);
+        startRouteTransition(() => {
+          setCurrentRoute('feed');
+        });
+        return;
+      }
       if (hash) {
         startRouteTransition(() => {
           setCurrentRoute(hash);

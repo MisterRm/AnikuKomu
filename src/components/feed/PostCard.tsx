@@ -139,13 +139,21 @@ export default function PostCard({
         onClick={() => onOpenComments(post.id)}
         className="w-full aspect-[4/5] rounded-2xl bg-[#111113] border border-[#27272a] overflow-hidden relative cursor-pointer group shadow-xl"
       >
-        <img
-          src={post.image_url}
-          alt={post.caption || 'AnikuKomu Post'}
-          loading="lazy"
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out"
-        />
+        {post.image_url ? (
+          <img
+            src={post.image_url}
+            alt={post.caption || 'AnikuKomu Post'}
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center p-6 bg-gradient-to-br from-purple-500/10 via-zinc-900 to-pink-500/10">
+            <p className="text-sm text-zinc-300 text-center leading-relaxed line-clamp-[10]">
+              {post.caption}
+            </p>
+          </div>
+        )}
 
         {/* Sleek bottom dark gradient overlay with tag badges */}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent p-4 flex flex-col justify-end gap-1.5 transition-opacity z-10">

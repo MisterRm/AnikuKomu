@@ -236,13 +236,21 @@ export default function ExplorePage({
                   onClick={() => onOpenComments(post.id)}
                   className="group relative cursor-pointer aspect-square rounded-2xl overflow-hidden bg-zinc-900 border border-zinc-900/60 shadow hover:-translate-y-0.5 transition-all duration-300"
                 >
-                  <img
-                    src={post.image_url}
-                    alt=""
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    referrerPolicy="no-referrer"
-                    loading="lazy"
-                  />
+                  {post.image_url ? (
+                    <img
+                      src={post.image_url}
+                      alt=""
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      referrerPolicy="no-referrer"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center p-3 bg-gradient-to-br from-purple-500/10 via-zinc-900 to-pink-500/10">
+                      <p className="text-[10px] text-zinc-300 text-center line-clamp-5 leading-snug">
+                        {post.caption}
+                      </p>
+                    </div>
+                  )}
                   {/* Subtle caption overlay on hover */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-end">
                     <p className="text-[10px] font-bold text-zinc-200 line-clamp-2 leading-snug">

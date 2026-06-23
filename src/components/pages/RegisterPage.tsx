@@ -52,9 +52,17 @@ export default function RegisterPage({ onNavigateToLogin, onSuccess, onToast }: 
       }
 
       // 2. Register via Supabase Auth
+      // Username/display name go into user_metadata so they survive even if
+      // the profile row can't be created yet (e.g. RLS blocks it pre-confirmation).
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: email.trim(),
-        password: password.trim()
+        password: password.trim(),
+        options: {
+          data: {
+            username: cleanUsername,
+            display_name: username.trim(),
+          },
+        },
       });
 
       if (authError) throw authError;
@@ -64,25 +72,34 @@ export default function RegisterPage({ onNavigateToLogin, onSuccess, onToast }: 
         throw new Error('Gagal mendaftarkan akun. Silakan periksa kembali email Anda.');
       }
 
-      // 3. Insert record into Profiles table automatically (bypassing triggers for immediate reliability)
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: registeredUser.id,
-          username: cleanUsername,
-          display_name: username.trim(),
-          avatar_url: null,
-          bio: 'Penggemar Anime Nusantara 🇮🇩',
-          followers_count: 0,
-          following_count: 0,
-          posts_count: 0
-        });
+      // 3. Try creating the profile row right away. If email confirmation is
+      // required, there's no active session yet and this will be blocked by
+      // RLS — that's expected. useAuth will create the profile automatically
+      // from user_metadata the first time the user actually logs in.
+      if (authData.session) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: registeredUser.id,
+            username: cleanUsername,
+            display_name: username.trim(),
+            avatar_url: null,
+            bio: 'Penggemar Anime Nusantara 🇮🇩',
+            followers_count: 0,
+            following_count: 0,
+            posts_count: 0
+          });
 
-      if (profileError) {
-        console.error('Failed writing user profile, retrying lookup:', profileError.message);
+        if (profileError) {
+          console.error('Failed writing user profile, retrying lookup:', profileError.message);
+        }
       }
 
-      onToast('Pendaftaran akun berhasil! Selamat datang di AnikuKomu! 🎉', 'success');
+      if (!authData.session) {
+        onToast('Pendaftaran berhasil! Cek email kamu untuk konfirmasi sebelum login. 📧', 'success');
+      } else {
+        onToast('Pendaftaran akun berhasil! Selamat datang di AnikuKomu! 🎉', 'success');
+      }
       onSuccess();
     } catch (err: any) {
       console.error(err);

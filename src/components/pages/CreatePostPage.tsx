@@ -85,30 +85,38 @@ export default function CreatePostPage({ currentUser, token, onSuccess, onToast 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token || !caption.trim() || !imageFile || publishing || !currentUser) return;
+    if (!token || !caption.trim() || publishing || !currentUser) return;
 
     setPublishing(true);
-    onToast('Mengunggah gambar ke Cloudinary...', 'info');
 
     try {
-      // 1. Upload to Cloudinary via Express server API
-      const formData = new FormData();
-      formData.append('image', imageFile);
+      let imageUrl: string | null = null;
+      let imagePublicId: string | null = null;
 
-      const uploadRes = await fetch('/api/upload?folder=posts', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
+      // 1. Upload to Cloudinary via Express server API (only if an image was attached)
+      if (imageFile) {
+        onToast('Mengunggah gambar ke Cloudinary...', 'info');
 
-      if (!uploadRes.ok) {
-        const errorData = await uploadRes.json();
-        throw new Error(errorData.error || 'Penyimpanan server gagal.');
+        const formData = new FormData();
+        formData.append('image', imageFile);
+
+        const uploadRes = await fetch('/api/upload?folder=posts', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
+
+        if (!uploadRes.ok) {
+          const errorData = await uploadRes.json();
+          throw new Error(errorData.error || 'Penyimpanan server gagal.');
+        }
+
+        const uploadResult = await uploadRes.json();
+        imageUrl = uploadResult.url;
+        imagePublicId = uploadResult.public_id;
       }
-
-      const uploadResult = await uploadRes.json();
 
       onToast('Sinkronisasi database Supabase...', 'info');
 
@@ -118,8 +126,8 @@ export default function CreatePostPage({ currentUser, token, onSuccess, onToast 
         .insert({
           user_id: currentUser.id,
           caption: caption.trim(),
-          image_url: uploadResult.url,
-          image_public_id: uploadResult.public_id,
+          image_url: imageUrl,
+          image_public_id: imagePublicId,
           likes_count: 0,
           comments_count: 0
         })
@@ -165,7 +173,7 @@ export default function CreatePostPage({ currentUser, token, onSuccess, onToast 
     }
   };
 
-  const isFormValid = caption.trim() && imageFile && !publishing;
+  const isFormValid = caption.trim() && !publishing;
 
   return (
     <div className="w-full flex flex-col min-h-screen pb-24 select-none">
@@ -184,7 +192,7 @@ export default function CreatePostPage({ currentUser, token, onSuccess, onToast 
           {/* Visual Media Drag and Drop Uploader Area */}
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest font-mono block">
-              Foto Postingan Anime
+              Foto Postingan Anime <span className="text-zinc-600">(Opsional)</span>
             </label>
 
             {imagePreview ? (

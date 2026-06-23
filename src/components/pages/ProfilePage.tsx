@@ -384,13 +384,21 @@ export default function ProfilePage({
                 onClick={() => onOpenComments(post.id)}
                 className="relative aspect-square overflow-hidden group cursor-pointer bg-zinc-900/50 border border-zinc-900/40 hover:opacity-90 active:scale-95 transition-all"
               >
-                <img
-                  src={post.image_url}
-                  alt=""
-                  loading="lazy"
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
+                {post.image_url ? (
+                  <img
+                    src={post.image_url}
+                    alt=""
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center p-2 bg-gradient-to-br from-purple-500/10 via-zinc-900 to-pink-500/10">
+                    <p className="text-[9px] text-zinc-300 text-center line-clamp-4 leading-snug">
+                      {post.caption}
+                    </p>
+                  </div>
+                )}
                 {/* Stats indicators overlay hover */}
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 text-xs font-bold text-white">
                   <div className="flex items-center gap-1 font-mono text-zinc-200">
