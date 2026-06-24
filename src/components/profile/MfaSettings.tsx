@@ -6,6 +6,8 @@ interface MfaSettingsProps {
   onToast: (text: string, type: 'success' | 'error' | 'info') => void;
 }
 
+const PENDING_KEY = 'anikukomu_mfa_pending_enroll';
+
 export default function MfaSettings({ onToast }: MfaSettingsProps) {
   const [loadingFactors, setLoadingFactors] = useState(true);
   const [activeFactorId, setActiveFactorId] = useState<string | null>(null);
@@ -25,6 +27,33 @@ export default function MfaSettings({ onToast }: MfaSettingsProps) {
       if (error) throw error;
       const verifiedTotp = data?.totp?.find((f) => f.status === 'verified');
       setActiveFactorId(verifiedTotp?.id || null);
+
+      // If we were in the middle of an enroll attempt before the page got
+      // reloaded (e.g. Chrome discarding a backgrounded tab while the user
+      // switched to their authenticator app), resume it with the SAME QR
+      // code/secret instead of generating a new one — a new secret would no
+      // longer match what's already saved in their authenticator app.
+      if (!verifiedTotp) {
+        const raw = sessionStorage.getItem(PENDING_KEY);
+        if (raw) {
+          try {
+            const pending = JSON.parse(raw);
+            const stillUnverified = data?.totp?.some(
+              (f) => f.id === pending.factorId && f.status !== 'verified'
+            );
+            if (stillUnverified) {
+              setPendingFactorId(pending.factorId);
+              setQrSvg(pending.qrSvg);
+              setSecret(pending.secret);
+              setEnrolling(true);
+            } else {
+              sessionStorage.removeItem(PENDING_KEY);
+            }
+          } catch {
+            sessionStorage.removeItem(PENDING_KEY);
+          }
+        }
+      }
     } catch (err: any) {
       console.error('Error loading MFA factors:', err);
     } finally {
@@ -38,6 +67,7 @@ export default function MfaSettings({ onToast }: MfaSettingsProps) {
 
   const startEnroll = async () => {
     setBusy(true);
+    sessionStorage.removeItem(PENDING_KEY);
     try {
       // Clean up any leftover unverified factors from previous abandoned
       // attempts (e.g. user navigated away before scanning the QR code).
@@ -62,6 +92,12 @@ export default function MfaSettings({ onToast }: MfaSettingsProps) {
       setQrSvg(data.totp.qr_code);
       setSecret(data.totp.secret);
       setEnrolling(true);
+
+      sessionStorage.setItem(PENDING_KEY, JSON.stringify({
+        factorId: data.id,
+        qrSvg: data.totp.qr_code,
+        secret: data.totp.secret
+      }));
     } catch (err: any) {
       onToast(err.message || 'Gagal memulai pengaturan 2FA.', 'error');
     } finally {
@@ -82,6 +118,7 @@ export default function MfaSettings({ onToast }: MfaSettingsProps) {
       if (error) throw error;
 
       onToast('Verifikasi 2 langkah berhasil diaktifkan! 🔒', 'success');
+      sessionStorage.removeItem(PENDING_KEY);
       setEnrolling(false);
       setQrSvg(null);
       setSecret(null);
@@ -107,6 +144,7 @@ export default function MfaSettings({ onToast }: MfaSettingsProps) {
   };
 
   const cancelEnroll = async () => {
+    sessionStorage.removeItem(PENDING_KEY);
     if (pendingFactorId) {
       try {
         await supabase.auth.mfa.unenroll({ factorId: pendingFactorId });
