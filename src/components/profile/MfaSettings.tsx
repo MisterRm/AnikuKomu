@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase/client';
-import { ShieldCheck, ShieldOff, Loader, KeyRound } from 'lucide-react';
+import { ShieldCheck, ShieldOff, Loader, KeyRound, Copy, Check } from 'lucide-react';
 
 interface MfaSettingsProps {
   onToast: (text: string, type: 'success' | 'error' | 'info') => void;
@@ -16,6 +16,7 @@ export default function MfaSettings({ onToast }: MfaSettingsProps) {
   const [pendingFactorId, setPendingFactorId] = useState<string | null>(null);
   const [verifyCode, setVerifyCode] = useState('');
   const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const loadFactors = async () => {
     setLoadingFactors(true);
@@ -91,6 +92,17 @@ export default function MfaSettings({ onToast }: MfaSettingsProps) {
       onToast(err.message || 'Kode salah, coba lagi.', 'error');
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleCopySecret = async () => {
+    if (!secret) return;
+    try {
+      await navigator.clipboard.writeText(secret);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      onToast('Gagal menyalin kode.', 'error');
     }
   };
 
@@ -172,14 +184,23 @@ export default function MfaSettings({ onToast }: MfaSettingsProps) {
           <p className="text-[10px] text-zinc-400">
             Scan kode QR ini dengan Google Authenticator, Authy, atau aplikasi autentikator lainnya:
           </p>
-          <div
-            className="bg-white rounded-xl p-3 w-fit mx-auto [&_svg]:w-40 [&_svg]:h-40"
-            dangerouslySetInnerHTML={{ __html: qrSvg }}
-          />
+          <div className="bg-white rounded-xl p-3 w-fit mx-auto">
+            <img src={qrSvg} alt="QR Code 2FA" className="w-40 h-40" />
+          </div>
           {secret && (
-            <p className="text-[10px] text-zinc-500 text-center break-all">
-              Atau masukkan kode manual: <span className="font-mono text-zinc-300">{secret}</span>
-            </p>
+            <div className="flex items-center justify-center gap-2 text-[10px] text-zinc-500 text-center">
+              <span>
+                Atau masukkan kode manual: <span className="font-mono text-zinc-300 break-all">{secret}</span>
+              </span>
+              <button
+                type="button"
+                onClick={handleCopySecret}
+                className="shrink-0 p-1.5 rounded-md bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
+                title="Salin kode"
+              >
+                {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+              </button>
+            </div>
           )}
 
           <form onSubmit={confirmEnroll} className="space-y-2 pt-1">
