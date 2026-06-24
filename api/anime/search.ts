@@ -35,8 +35,21 @@ async function upsertAnimes(animes: any[]) {
   }
 }
 
+async function authenticateUser(req: VercelRequest) {
+  const auth = req.headers.authorization;
+  if (!auth?.startsWith('Bearer ')) return null;
+  const token = auth.split(' ')[1];
+  const { data: { user } } = await supabase.auth.getUser(token);
+  return user;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // Only the app itself should call this — no public/cross-origin access,
+  // and it must come from a logged-in user (this route writes to the DB
+  // using the service role key).
+  const user = await authenticateUser(req);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
   const q = (req.query.q as string) || '';
 
   // Kalau query kosong, return top anime dari Jikan

@@ -253,7 +253,7 @@ export default function CreatePostPage({ currentUser, token, onSuccess, onToast 
           </div>
 
           {/* Anime tag */}
-          <AnimeTagInput selectedAnimes={selectedAnimes as any} onChange={setSelectedAnimes as any} />
+          <AnimeTagInput selectedAnimes={selectedAnimes as any} onChange={setSelectedAnimes as any} token={token} />
 
           {/* Submit */}
           <button

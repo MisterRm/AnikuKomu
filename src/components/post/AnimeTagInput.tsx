@@ -18,10 +18,11 @@ interface JikanAnime extends Partial<Anime> {
 interface AnimeTagInputProps {
   selectedAnimes: JikanAnime[];
   onChange: (animes: JikanAnime[]) => void;
+  token: string | null;
   className?: string;
 }
 
-export default function AnimeTagInput({ selectedAnimes, onChange, className }: AnimeTagInputProps) {
+export default function AnimeTagInput({ selectedAnimes, onChange, token, className }: AnimeTagInputProps) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<JikanAnime[]>([]);
   const [loading, setLoading] = useState(false);
@@ -30,9 +31,12 @@ export default function AnimeTagInput({ selectedAnimes, onChange, className }: A
 
   useEffect(() => {
     const fetchSuggestions = async (q: string) => {
+      if (!token) return;
       try {
         setLoading(true);
-        const res = await fetch(`/api/anime/search?q=${encodeURIComponent(q)}`);
+        const res = await fetch(`/api/anime/search?q=${encodeURIComponent(q)}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
         const data = await res.json();
         if (Array.isArray(data)) {
           setSuggestions(data.filter(

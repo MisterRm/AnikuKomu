@@ -76,7 +76,7 @@ export default function RightSidebar({ currentUserId, token, onSelectTag, onNavi
   }, [currentUserId]);
 
   const handleFollowClick = async (targetUserId: string) => {
-    if (!token) return;
+    if (!currentUserId) return;
     // Optimistic Update
     const currentlyFollowing = !!followingMap[targetUserId];
     setFollowingMap(prev => ({
@@ -85,22 +85,21 @@ export default function RightSidebar({ currentUserId, token, onSelectTag, onNavi
     }));
 
     try {
-      const res = await fetch('/api/follow', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ target_user_id: targetUserId })
-      });
-
-      if (!res.ok) throw new Error('API failure');
-      const data = await res.json();
-      setFollowingMap(prev => ({
-        ...prev,
-        [targetUserId]: data.following
-      }));
+      if (currentlyFollowing) {
+        const { error } = await supabase
+          .from('follows')
+          .delete()
+          .eq('follower_id', currentUserId)
+          .eq('following_id', targetUserId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('follows')
+          .insert({ follower_id: currentUserId, following_id: targetUserId });
+        if (error) throw error;
+      }
     } catch (err) {
+      console.error('Follow toggle failed, rolling back:', err);
       // rollback
       setFollowingMap(prev => ({
         ...prev,

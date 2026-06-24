@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase/client';
 import { Flame, Mail, Lock, Eye, EyeOff, Loader, Sparkles, User } from 'lucide-react';
 import { motion } from 'motion/react';
+import TurnstileWidget from '../ui/TurnstileWidget';
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
 
 interface RegisterPageProps {
   onNavigateToLogin: () => void;
@@ -15,6 +18,8 @@ export default function RegisterPage({ onNavigateToLogin, onSuccess, onToast }: 
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
 
   const fetchRandomCharacter = async () => {
     try {
@@ -50,6 +55,11 @@ export default function RegisterPage({ onNavigateToLogin, onSuccess, onToast }: 
       return;
     }
 
+    if (TURNSTILE_SITE_KEY && !captchaToken) {
+      onToast('Mohon selesaikan verifikasi keamanan terlebih dahulu.', 'error');
+      return;
+    }
+
     setLoading(true);
     try {
       // 1. Check if username is already taken
@@ -80,6 +90,7 @@ export default function RegisterPage({ onNavigateToLogin, onSuccess, onToast }: 
             username: cleanUsername,
             display_name: username.trim(),
           },
+          captchaToken: captchaToken || undefined,
         },
       });
 
@@ -124,6 +135,8 @@ export default function RegisterPage({ onNavigateToLogin, onSuccess, onToast }: 
       onToast(err.message || 'Gagal mendaftarkan akun baru.', 'error');
     } finally {
       setLoading(false);
+      setCaptchaToken(null);
+      setCaptchaResetKey((k) => k + 1);
     }
   };
 
@@ -215,10 +228,20 @@ export default function RegisterPage({ onNavigateToLogin, onSuccess, onToast }: 
           </div>
         </div>
 
+        {/* Bot/security verification */}
+        {TURNSTILE_SITE_KEY && (
+          <TurnstileWidget
+            siteKey={TURNSTILE_SITE_KEY}
+            onVerify={setCaptchaToken}
+            onExpire={() => setCaptchaToken(null)}
+            resetSignal={captchaResetKey}
+          />
+        )}
+
         {/* Submit */}
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || (!!TURNSTILE_SITE_KEY && !captchaToken)}
           className="w-full py-3 rounded-xl font-bold text-center text-xs transition-all duration-300 bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-xl shadow-purple-500/10 active:scale-95 disabled:opacity-40 disabled:scale-100 flex items-center justify-center gap-2 cursor-pointer mt-1"
         >
           {loading ? (

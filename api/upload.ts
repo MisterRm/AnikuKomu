@@ -36,9 +36,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (err) return res.status(400).json({ error: 'Upload error' });
     const file = Array.isArray(files.image) ? files.image[0] : files.image;
     if (!file) return res.status(400).json({ error: 'No file' });
+
+    const allowedMimeTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+    if (!file.mimetype || !allowedMimeTypes.includes(file.mimetype)) {
+      try { fs.unlinkSync(file.filepath); } catch {}
+      return res.status(400).json({ error: 'Tipe file tidak didukung. Gunakan PNG, JPG, JPEG, atau GIF.' });
+    }
+
     try {
       const folder = req.query.folder === 'profiles' ? 'anikukomu_avatars' : 'anikukomu_posts';
-      const result = await cloudinary.uploader.upload(file.filepath, { folder });
+      const result = await cloudinary.uploader.upload(file.filepath, { folder, resource_type: 'image' });
       fs.unlinkSync(file.filepath);
       return res.json({ url: result.secure_url, public_id: result.public_id });
     } catch (e: any) {
