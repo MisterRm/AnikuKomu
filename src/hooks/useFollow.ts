@@ -1,14 +1,38 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase/client';
 
-export function useFollow(targetUserId: string, initialFollowing: boolean) {
-  const [following, setFollowing] = useState(initialFollowing);
+export function useFollow(targetUserId: string, _initialFollowing: boolean) {
+  const [following, setFollowing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [checked, setChecked] = useState(false);
 
-  // token param kept for backwards-compat with existing call sites, but the
-  // actual auth comes from the Supabase client's own session (RLS-enforced).
+  // Selalu cek dari DB setiap targetUserId berubah
+  useEffect(() => {
+    if (!targetUserId) return;
+    setChecked(false);
+
+    const checkStatus = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user || user.id === targetUserId) return;
+
+        const { data } = await supabase
+          .from('follows')
+          .select('follower_id')
+          .eq('follower_id', user.id)
+          .eq('following_id', targetUserId)
+          .maybeSingle();
+
+        setFollowing(!!data);
+      } catch {}
+      finally { setChecked(true); }
+    };
+
+    checkStatus();
+  }, [targetUserId]);
+
   const toggleFollow = async (_token: string) => {
-    if (isProcessing) return;
+    if (isProcessing || !checked) return;
     setIsProcessing(true);
 
     const prevFollowing = following;
@@ -16,8 +40,8 @@ export function useFollow(targetUserId: string, initialFollowing: boolean) {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Anda harus login untuk mengikuti pengguna.');
-      if (user.id === targetUserId) throw new Error('Tidak bisa mengikuti diri sendiri.');
+      if (!user) throw new Error('Harus login dulu.');
+      if (user.id === targetUserId) throw new Error('Tidak bisa follow diri sendiri.');
 
       if (prevFollowing) {
         const { error } = await supabase
@@ -27,7 +51,7 @@ export function useFollow(targetUserId: string, initialFollowing: boolean) {
           .eq('following_id', targetUserId);
         if (error) throw error;
       } else {
-        // Cek dulu apakah sudah follow (hindari duplicate)
+        // Cek dulu biar ga duplicate
         const { data: existing } = await supabase
           .from('follows')
           .select('follower_id')
@@ -43,17 +67,12 @@ export function useFollow(targetUserId: string, initialFollowing: boolean) {
         }
       }
     } catch (err) {
-      console.error('Follow toggle failed, rolling back:', err);
-      setFollowing(prevFollowing);
+      setFollowing(prevFollowing); // rollback
       throw err;
     } finally {
       setIsProcessing(false);
     }
   };
 
-  return {
-    following,
-    toggleFollow,
-    isProcessing,
-  };
+  return { following, toggleFollow, isProcessing, checked };
 }

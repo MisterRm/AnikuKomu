@@ -176,30 +176,10 @@ export default function ProfilePage({
 
   const isMe = currentUser && profile && currentUser.id === profile.id;
 
-  // Let's bind our custom useFollow hook if viewing someone else
-  const [amIFollowing, setAmIFollowing] = useState(false);
-  useEffect(() => {
-    if (!isMe && currentUser && profile) {
-      async function checkFollowing() {
-        const { data } = await supabase
-          .from('follows')
-          .select('follower_id')
-          .eq('follower_id', currentUser.id)
-          .eq('following_id', profile.id)
-          .maybeSingle();
-        setAmIFollowing(!!data);
-        setFollowChecked(true);
-      }
-      setFollowChecked(false);
-      checkFollowing();
-    }
-  }, [isMe, currentUser, profile]);
-
-  // Key trick: re-mount useFollow setelah amIFollowing dari DB ke-load
-  const [followChecked, setFollowChecked] = useState(false);
+  // useFollow handles DB check internally
   const { following, toggleFollow, isProcessing } = useFollow(
-    followChecked ? (profile?.id || '') : '',
-    amIFollowing
+    (!isMe && currentUser && profile) ? (profile?.id || '') : '',
+    false
   );
 
   const handleFollowToggle = async () => {
