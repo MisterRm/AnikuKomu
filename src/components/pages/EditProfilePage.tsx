@@ -4,6 +4,7 @@ import { Profile } from '../../types/database';
 import { Avatar } from '../ui/Avatar';
 import { Save, ChevronLeft, Camera, Loader, Share2, Globe, Heart } from 'lucide-react';
 import { motion } from 'motion/react';
+import MfaSettings from '../profile/MfaSettings';
 
 interface EditProfilePageProps {
   currentProfile: Profile | null;
@@ -278,6 +279,15 @@ export default function EditProfilePage({
             )}
           </button>
         </form>
+
+        {/* Security section — separate from the profile form above since it
+            has its own independent save/verify actions */}
+        <div className="mt-6 space-y-1.5">
+          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest font-mono block px-1">
+            Keamanan Akun
+          </label>
+          <MfaSettings onToast={onToast} />
+        </div>
       </div>
     </div>
   );
