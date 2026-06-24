@@ -38,7 +38,24 @@ export default function MfaSettings({ onToast }: MfaSettingsProps) {
   const startEnroll = async () => {
     setBusy(true);
     try {
-      const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' });
+      // Clean up any leftover unverified factors from previous abandoned
+      // attempts (e.g. user navigated away before scanning the QR code).
+      // Supabase rejects a new enroll if a factor with the same friendly
+      // name already exists, so this also prevents that collision.
+      const { data: existing } = await supabase.auth.mfa.listFactors();
+      const unverified = existing?.totp?.filter((f) => f.status !== 'verified') || [];
+      for (const f of unverified) {
+        try {
+          await supabase.auth.mfa.unenroll({ factorId: f.id });
+        } catch {
+          // ignore — best effort
+        }
+      }
+
+      const { data, error } = await supabase.auth.mfa.enroll({
+        factorType: 'totp',
+        friendlyName: `anikukomu-${Date.now()}`
+      });
       if (error) throw error;
       setPendingFactorId(data.id);
       setQrSvg(data.totp.qr_code);
