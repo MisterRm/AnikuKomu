@@ -183,17 +183,24 @@ export default function ProfilePage({
       async function checkFollowing() {
         const { data } = await supabase
           .from('follows')
-          .select('*')
+          .select('follower_id')
           .eq('follower_id', currentUser.id)
           .eq('following_id', profile.id)
           .maybeSingle();
         setAmIFollowing(!!data);
+        setFollowChecked(true);
       }
+      setFollowChecked(false);
       checkFollowing();
     }
   }, [isMe, currentUser, profile]);
 
-  const { following, toggleFollow, isProcessing } = useFollow(profile?.id || '', amIFollowing);
+  // Key trick: re-mount useFollow setelah amIFollowing dari DB ke-load
+  const [followChecked, setFollowChecked] = useState(false);
+  const { following, toggleFollow, isProcessing } = useFollow(
+    followChecked ? (profile?.id || '') : '',
+    amIFollowing
+  );
 
   const handleFollowToggle = async () => {
     if (!token || !profile) return;

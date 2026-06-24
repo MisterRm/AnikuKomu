@@ -27,10 +27,20 @@ export function useFollow(targetUserId: string, initialFollowing: boolean) {
           .eq('following_id', targetUserId);
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        // Cek dulu apakah sudah follow (hindari duplicate)
+        const { data: existing } = await supabase
           .from('follows')
-          .insert({ follower_id: user.id, following_id: targetUserId });
-        if (error) throw error;
+          .select('follower_id')
+          .eq('follower_id', user.id)
+          .eq('following_id', targetUserId)
+          .maybeSingle();
+
+        if (!existing) {
+          const { error } = await supabase
+            .from('follows')
+            .insert({ follower_id: user.id, following_id: targetUserId });
+          if (error) throw error;
+        }
       }
     } catch (err) {
       console.error('Follow toggle failed, rolling back:', err);
