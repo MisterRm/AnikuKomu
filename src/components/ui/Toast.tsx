@@ -21,7 +21,7 @@ export function ToastContainer({ toasts, removeToast }: ToastContainerProps) {
   if (typeof window === 'undefined') return null;
 
   return createPortal(
-    <div className="fixed bottom-safe sm:bottom-4 right-4 left-4 sm:left-auto z-50 flex flex-col gap-2 pointer-events-none max-w-sm">
+    <div className="fixed top-4 right-4 left-4 sm:left-auto z-50 flex flex-col gap-2 pointer-events-none sm:max-w-sm">
       <AnimatePresence>
         {toasts.map((toast) => (
           <ToastItem key={toast.id} toast={toast} onDismiss={removeToast} />
@@ -60,9 +60,9 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      initial={{ opacity: 0, y: -16, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9, y: -10 }}
+      exit={{ opacity: 0, scale: 0.9, y: -8 }}
       transition={{ type: 'spring', stiffness: 380, damping: 28 }}
       className={`pointer-events-auto flex items-start gap-3 p-4 rounded-xl border backdrop-blur-md shadow-2xl ${bgColors[toast.type]}`}
     >

@@ -5,7 +5,7 @@ import { Avatar } from '../ui/Avatar';
 import { Skeleton } from '../ui/Skeleton';
 import { useFollow } from '../../hooks/useFollow';
 import { formatCount } from '../../lib/utils';
-import { Settings, Image, Heart, Users, MessageSquare, ShieldAlert, X } from 'lucide-react';
+import { Settings, Image, Heart, Users, MessageSquare, ShieldAlert, X, Globe, Twitter, Instagram, Link } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface ProfilePageProps {
@@ -332,18 +332,18 @@ export default function ProfilePage({
           {/* Social connections links */}
           <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-[10px] text-zinc-500 font-mono">
             {profile.website_url && (
-              <a href={profile.website_url} target="_blank" rel="noreferrer" className="hover:text-purple-400 truncate max-w-[150px]">
-                🌐 {profile.website_url.replace(/(https?:\/\/)?(www\.)?/, '')}
+              <a href={profile.website_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 hover:text-purple-400 truncate max-w-[160px]">
+                <Globe className="w-3 h-3 shrink-0" />{profile.website_url.replace(/(https?:\/\/)?(www\.)?/, '')}
               </a>
             )}
             {profile.twitter_url && (
-              <a href={`https://twitter.com/${profile.twitter_url}`} target="_blank" rel="noreferrer" className="hover:text-purple-400">
-                🐦 {profile.twitter_url}
+              <a href={`https://twitter.com/${profile.twitter_url}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 hover:text-purple-400">
+                <Twitter className="w-3 h-3 shrink-0" />{profile.twitter_url}
               </a>
             )}
             {profile.instagram_url && (
-              <a href={`https://instagram.com/${profile.instagram_url}`} target="_blank" rel="noreferrer" className="hover:text-purple-400">
-                📸 @{profile.instagram_url}
+              <a href={`https://instagram.com/${profile.instagram_url}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 hover:text-purple-400">
+                <Instagram className="w-3 h-3 shrink-0" />@{profile.instagram_url}
               </a>
             )}
           </div>
