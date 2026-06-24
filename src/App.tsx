@@ -310,6 +310,8 @@ export default function App() {
           <StoryViewer
             stories={activeStoryDeck}
             initialIndex={storyStartIndex}
+            currentUserId={user?.id}
+            onStoryDeleted={() => setFeedRefreshKey(k => k + 1)}
             onClose={() => {
               setActiveStoryDeck(null);
               setStoryStartIndex(0);

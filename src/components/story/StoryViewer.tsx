@@ -1,21 +1,26 @@
 import React, { useEffect, useState, startTransition } from 'react';
 import { Story } from '../../types/database';
 import { Avatar } from '../ui/Avatar';
-import { ChevronLeft, ChevronRight, X, Play, Pause } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Play, Pause, Trash2 } from 'lucide-react';
+import { supabase } from '../../lib/supabase/client';
 import { motion, AnimatePresence, useDragControls } from 'motion/react';
 
 interface StoryViewerProps {
   stories: Story[];
   initialIndex?: number;
   onClose: () => void;
+  currentUserId?: string;
+  onStoryDeleted?: (storyId: string) => void;
 }
 
-export default function StoryViewer({ stories, initialIndex = 0, onClose }: StoryViewerProps) {
+export default function StoryViewer({ stories, initialIndex = 0, onClose, currentUserId, onStoryDeleted }: StoryViewerProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [paused, setPaused] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [deleting, setDeleting] = useState(false);
+  const [storyList, setStoryList] = useState(stories);
 
-  const activeStory = stories[currentIndex];
+  const activeStory = storyList[currentIndex] || stories[currentIndex];
   const author = activeStory?.profiles || { username: 'wibu_member', display_name: 'Wibu Member', avatar_url: null };
 
   // Timer intervals for progress mapping
@@ -74,6 +79,30 @@ export default function StoryViewer({ stories, initialIndex = 0, onClose }: Stor
       handleNext();
     }
   };
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (deleting || !activeStory) return;
+    if (!window.confirm('Hapus story ini?')) return;
+    setDeleting(true);
+    try {
+      await supabase.from('stories').delete().eq('id', activeStory.id);
+      const newList = storyList.filter(s => s.id !== activeStory.id);
+      if (newList.length === 0) {
+        onClose();
+      } else {
+        setStoryList(newList);
+        setCurrentIndex(Math.min(currentIndex, newList.length - 1));
+      }
+      if (onStoryDeleted) onStoryDeleted(activeStory.id);
+    } catch (err) {
+      console.error('Gagal hapus story:', err);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const isMyStory = currentUserId && activeStory?.user_id === currentUserId;
 
   if (!activeStory) return null;
 
