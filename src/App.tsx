@@ -251,8 +251,8 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans antialiased overflow-wrap-anywhere">
-      <div className="max-w-7xl mx-auto flex justify-center">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans antialiased overflow-x-hidden">
+      <div className="max-w-7xl mx-auto flex justify-center overflow-x-hidden w-full">
         {/* Left Side Sidebar on Desktop */}
         {!isAuthPage && (
           <Sidebar
@@ -268,7 +268,7 @@ export default function App() {
         <main className={`flex-1 ${
           isAuthPage 
             ? 'w-full flex items-center justify-center min-h-screen p-4' 
-            : 'max-w-[640px] border-x border-zinc-900/60 min-h-screen pb-20 md:pb-6 md:pl-0 md:ml-[240px] xl:mr-[340px] xl:ml-[240px]'
+            : 'w-full max-w-[640px] border-x border-zinc-900/60 min-h-screen pb-20 md:pb-6 md:ml-[240px] xl:ml-[240px] xl:mr-[340px] overflow-x-hidden'
         }`}>
           <AnimatePresence mode="wait">
             <motion.div
