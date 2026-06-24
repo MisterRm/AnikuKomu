@@ -16,6 +16,24 @@ export default function RegisterPage({ onNavigateToLogin, onSuccess, onToast }: 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const fetchRandomCharacter = async () => {
+    try {
+      const page = Math.floor(Math.random() * 10) + 1;
+      const res = await fetch(`https://api.jikan.moe/v4/top/characters?page=${page}&limit=25`);
+      const json = await res.json();
+      const chars = json.data || [];
+      if (chars.length > 0) {
+        const picked = chars[Math.floor(Math.random() * chars.length)];
+        return {
+          banner_char_img: picked.images?.jpg?.image_url || '',
+          banner_char_name: picked.name || '',
+          banner_char_anime: picked.anime?.[0]?.anime?.title || '',
+        };
+      }
+    } catch {}
+    return { banner_char_img: '', banner_char_name: '', banner_char_anime: '' };
+  };
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanUsername = username.trim().toLowerCase();

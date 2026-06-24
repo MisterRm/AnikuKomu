@@ -42,7 +42,7 @@ export default function ProfilePage({
   const [followingList, setFollowingList] = useState<Profile[]>([]);
   const [loadingModalData, setLoadingModalData] = useState(false);
   const [, startTransition] = useTransition();
-  const [bannerChar, setBannerChar] = useState<{ img: string; name: string; anime: string } | null>(null);
+  const [bannerChar, setBannerChar] = useState<{ img: string; name: string; anime: string } | null>(null); // dari DB
 
   // Load profile details dynamically
   useEffect(() => {
@@ -66,6 +66,15 @@ export default function ProfilePage({
 
         const activeProf = profileData as Profile;
         setProfile(activeProf);
+
+        // Set banner character dari DB
+        if ((activeProf as any).banner_char_img) {
+          setBannerChar({
+            img: (activeProf as any).banner_char_img,
+            name: (activeProf as any).banner_char_name || '',
+            anime: (activeProf as any).banner_char_anime || '',
+          });
+        }
 
         // Fetch posts or liked posts based on active tab
         let postData: Post[] = [];
@@ -164,28 +173,6 @@ export default function ProfilePage({
       setLoadingModalData(false);
     }
   };
-
-  // Fetch random anime character untuk banner
-  useEffect(() => {
-    const fetchBannerChar = async () => {
-      try {
-        const randomPage = Math.floor(Math.random() * 5) + 1;
-        const res = await fetch(`https://api.jikan.moe/v4/top/characters?page=${randomPage}&limit=25`);
-        const json = await res.json();
-        const chars = json.data || [];
-        if (chars.length > 0) {
-          const picked = chars[Math.floor(Math.random() * chars.length)];
-          const anime = picked.anime?.[0]?.anime?.title || '';
-          setBannerChar({
-            img: picked.images?.jpg?.image_url || '',
-            name: picked.name || '',
-            anime,
-          });
-        }
-      } catch {}
-    };
-    fetchBannerChar();
-  }, [usernameParam]);
 
   const isMe = currentUser && profile && currentUser.id === profile.id;
 
@@ -288,29 +275,7 @@ export default function ProfilePage({
           </div>
         )}
 
-        {/* Refresh button */}
-        <button
-          onClick={() => {
-            setBannerChar(null);
-            const fetchNew = async () => {
-              try {
-                const p = Math.floor(Math.random() * 10) + 1;
-                const res = await fetch(`https://api.jikan.moe/v4/top/characters?page=${p}&limit=25`);
-                const json = await res.json();
-                const chars = json.data || [];
-                if (chars.length > 0) {
-                  const picked = chars[Math.floor(Math.random() * chars.length)];
-                  setBannerChar({ img: picked.images?.jpg?.image_url || '', name: picked.name || '', anime: picked.anime?.[0]?.anime?.title || '' });
-                }
-              } catch {}
-            };
-            fetchNew();
-          }}
-          className="absolute top-3 right-3 bg-black/40 backdrop-blur-md text-white/60 hover:text-white border border-white/10 rounded-full p-1.5 transition-all hover:bg-black/60 cursor-pointer"
-          title="Ganti karakter"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
-        </button>
+
       </div>
 
       {/* Avatar details section and overlap */}
