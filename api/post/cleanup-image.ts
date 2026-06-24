@@ -21,9 +21,14 @@ async function authenticateUser(req: VercelRequest) {
   return user;
 }
 
-// Best-effort cleanup of a Cloudinary image after its post row has already
-// been deleted client-side. Uses POST (not DELETE) since some mobile
-// networks/carrier proxies mishandle the DELETE HTTP method.
+// Deletes a post AND its Cloudinary image together, server-side, after
+// verifying the requester actually owns the post. This must be called
+// BEFORE the post row is removed (we need it to still exist to check
+// ownership) — so this endpoint performs the row delete itself rather than
+// relying on the client to have already deleted it.
+//
+// Uses POST (not DELETE) since some mobile networks/carrier proxies
+// mishandle the DELETE HTTP method.
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') {
     res.setHeader('Allow', 'POST, OPTIONS');
@@ -37,16 +42,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const user = await authenticateUser(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { public_id } = req.body || {};
-  if (!public_id || typeof public_id !== 'string') {
-    return res.status(400).json({ error: 'public_id is required' });
+  const { post_id } = req.body || {};
+  if (!post_id || typeof post_id !== 'string') {
+    return res.status(400).json({ error: 'post_id is required' });
   }
 
-  try {
-    await cloudinary.uploader.destroy(public_id);
-  } catch (err) {
-    // Non-fatal — the post is already gone either way.
-    console.error('Cloudinary cleanup failed:', err);
+  // Look up the post and verify ownership BEFORE doing anything destructive.
+  const { data: post, error: fetchError } = await supabase
+    .from('posts')
+    .select('id, user_id, image_public_id')
+    .eq('id', post_id)
+    .maybeSingle();
+
+  if (fetchError) {
+    return res.status(500).json({ error: fetchError.message });
+  }
+  if (!post) {
+    return res.status(404).json({ error: 'Post not found' });
+  }
+  if (post.user_id !== user.id) {
+    return res.status(403).json({ error: 'Anda tidak memiliki izin untuk menghapus postingan ini.' });
+  }
+
+  // Delete the DB row first (this is the part the user actually cares about).
+  const { error: deleteError } = await supabase
+    .from('posts')
+    .delete()
+    .eq('id', post_id);
+
+  if (deleteError) {
+    return res.status(500).json({ error: deleteError.message });
+  }
+
+  // Best-effort Cloudinary cleanup — non-fatal if it fails, the post is
+  // already gone from the user's perspective either way.
+  if (post.image_public_id) {
+    try {
+      await cloudinary.uploader.destroy(post.image_public_id);
+    } catch (err) {
+      console.error('Cloudinary cleanup failed:', err);
+    }
   }
 
   return res.json({ success: true });

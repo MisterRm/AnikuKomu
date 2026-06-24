@@ -49,20 +49,28 @@ export default function PostCard({
     e.stopPropagation();
     if (isDeleting) return;
     if (!window.confirm('Apakah Anda yakin ingin menghapus postingan anime ini?')) return;
+    if (!token) {
+      onToast('Sesi Anda telah berakhir. Silakan login ulang.', 'error');
+      return;
+    }
 
     setIsDeleting(true);
     try {
-      const { error: deleteError } = await supabase
-        .from('posts').delete()
-        .eq('id', post.id).eq('user_id', currentUser.id);
-      if (deleteError) throw deleteError;
+      const res = await fetch('/api/post/cleanup-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ post_id: post.id })
+      });
 
-      if (post.image_public_id && token) {
-        fetch('/api/post/cleanup-image', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ public_id: post.image_public_id })
-        }).catch(() => {});
+      if (!res.ok) {
+        let message = `Gagal menghapus postingan (status ${res.status}).`;
+        try {
+          const data = await res.json();
+          if (data?.error) message = data.error;
+        } catch {
+          // non-JSON error body, keep fallback message
+        }
+        throw new Error(message);
       }
 
       onToast('Postingan berhasil dihapus!', 'success');

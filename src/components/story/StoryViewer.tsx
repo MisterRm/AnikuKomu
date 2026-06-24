@@ -86,7 +86,7 @@ export default function StoryViewer({ stories, initialIndex = 0, onClose, curren
     if (!window.confirm('Hapus story ini?')) return;
     setDeleting(true);
     try {
-      await supabase.from('stories').delete().eq('id', activeStory.id);
+      await supabase.from('stories').delete().eq('id', activeStory.id).eq('user_id', currentUserId);
       const newList = storyList.filter(s => s.id !== activeStory.id);
       if (newList.length === 0) {
         onClose();
