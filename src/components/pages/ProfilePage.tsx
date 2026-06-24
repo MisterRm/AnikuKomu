@@ -42,6 +42,7 @@ export default function ProfilePage({
   const [followingList, setFollowingList] = useState<Profile[]>([]);
   const [loadingModalData, setLoadingModalData] = useState(false);
   const [, startTransition] = useTransition();
+  const [bannerChar, setBannerChar] = useState<{ img: string; name: string; anime: string } | null>(null);
 
   // Load profile details dynamically
   useEffect(() => {
@@ -164,6 +165,28 @@ export default function ProfilePage({
     }
   };
 
+  // Fetch random anime character untuk banner
+  useEffect(() => {
+    const fetchBannerChar = async () => {
+      try {
+        const randomPage = Math.floor(Math.random() * 5) + 1;
+        const res = await fetch(`https://api.jikan.moe/v4/top/characters?page=${randomPage}&limit=25`);
+        const json = await res.json();
+        const chars = json.data || [];
+        if (chars.length > 0) {
+          const picked = chars[Math.floor(Math.random() * chars.length)];
+          const anime = picked.anime?.[0]?.anime?.title || '';
+          setBannerChar({
+            img: picked.images?.jpg?.image_url || '',
+            name: picked.name || '',
+            anime,
+          });
+        }
+      } catch {}
+    };
+    fetchBannerChar();
+  }, [usernameParam]);
+
   const isMe = currentUser && profile && currentUser.id === profile.id;
 
   // Let's bind our custom useFollow hook if viewing someone else
@@ -227,14 +250,67 @@ export default function ProfilePage({
 
   return (
     <div className="w-full flex flex-col min-h-screen pb-24 select-none relative">
-      {/* Cover Image backdrop banner (200px height) */}
-      <div className="w-full h-[200px] bg-gradient-to-r from-purple-900/50 via-zinc-900 to-pink-900/50 relative overflow-hidden select-none border-b border-zinc-900">
-        <div className="absolute inset-0 bg-black/40" />
-        <div className="absolute bottom-4 right-4 flex items-center gap-2">
-          <span className="text-[10px] uppercase font-bold text-purple-300 bg-purple-950/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-purple-800/30">
-            Otaku Card
-          </span>
+      {/* Banner Otaku Card dengan karakter anime random */}
+      <div className="w-full h-[200px] relative overflow-hidden select-none border-b border-zinc-900 bg-[#09090b]">
+        {/* Gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-950 via-zinc-950 to-pink-950" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
+
+        {/* Karakter anime di kanan */}
+        {bannerChar?.img && (
+          <div className="absolute right-0 top-0 h-full w-[160px] overflow-hidden">
+            <img
+              src={bannerChar.img}
+              alt={bannerChar.name}
+              className="h-full w-full object-cover object-top opacity-70"
+              referrerPolicy="no-referrer"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#09090b] via-transparent to-transparent" />
+          </div>
+        )}
+
+        {/* Decorative dots pattern */}
+        <div className="absolute inset-0 opacity-5" style={{backgroundImage: 'radial-gradient(circle, #c084fc 1px, transparent 1px)', backgroundSize: '24px 24px'}} />
+
+        {/* Label otaku card kiri bawah */}
+        <div className="absolute bottom-4 left-4 space-y-1">
+          <div className="text-[9px] uppercase tracking-widest font-bold text-purple-300/60 font-mono">AnikuKomu</div>
+          <div className="text-[11px] font-extrabold text-white/80 tracking-tight">Otaku Card</div>
         </div>
+
+        {/* Karakter name label kanan bawah */}
+        {bannerChar?.name && (
+          <div className="absolute bottom-4 right-4 text-right">
+            <p className="text-[10px] font-bold text-white/70 truncate max-w-[140px]">{bannerChar.name}</p>
+            {bannerChar.anime && (
+              <p className="text-[9px] text-purple-300/50 truncate max-w-[140px] font-mono">{bannerChar.anime}</p>
+            )}
+          </div>
+        )}
+
+        {/* Refresh button */}
+        <button
+          onClick={() => {
+            setBannerChar(null);
+            const fetchNew = async () => {
+              try {
+                const p = Math.floor(Math.random() * 10) + 1;
+                const res = await fetch(`https://api.jikan.moe/v4/top/characters?page=${p}&limit=25`);
+                const json = await res.json();
+                const chars = json.data || [];
+                if (chars.length > 0) {
+                  const picked = chars[Math.floor(Math.random() * chars.length)];
+                  setBannerChar({ img: picked.images?.jpg?.image_url || '', name: picked.name || '', anime: picked.anime?.[0]?.anime?.title || '' });
+                }
+              } catch {}
+            };
+            fetchNew();
+          }}
+          className="absolute top-3 right-3 bg-black/40 backdrop-blur-md text-white/60 hover:text-white border border-white/10 rounded-full p-1.5 transition-all hover:bg-black/60 cursor-pointer"
+          title="Ganti karakter"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        </button>
       </div>
 
       {/* Avatar details section and overlap */}
