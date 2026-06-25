@@ -300,6 +300,7 @@ export default function App() {
             currentRoute={currentRoute}
             onChangeRoute={handleNavigate}
             username={currentRouteUsername}
+            currentUserId={user?.id}
           />
         )}
       </div>
